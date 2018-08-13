@@ -4,8 +4,13 @@
 #include <Godot.hpp>
 #include "net/WebRTCPeerNative.hpp"
 
-#include "media/base/mediaengine.h"       // needed for CreateModularPeerConnectionFactory
 #include "api/peerconnectioninterface.h"	// interface for all things needed from WebRTC
+#ifdef interface
+#pragma message ( "\n 'interface' is defined \n" )
+#undef interface
+#endif // interface
+
+#include "media/base/mediaengine.h"       // needed for CreateModularPeerConnectionFactory
 #include <functional>        							// std::function
 #include <mutex>													// mutex @TODO replace std::mutex with Godot mutex
 
