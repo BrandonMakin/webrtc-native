@@ -62,12 +62,12 @@ godot_error create_offer_wp(void *user) {
 	return ((WebRTCPeerNative *) user)->create_offer();
 }
 
-godot_error set_remote_description_wp(void *user, const char *type, const char *sdp) {
-	return ((WebRTCPeerNative *) user)->set_remote_description(type, sdp);
+godot_error set_remote_description_wp(void *user, const char *sdp, bool isOffer) {
+	return ((WebRTCPeerNative *) user)->set_remote_description(sdp, isOffer);
 }
 
-godot_error set_local_description_wp(void *user, const char *type, const char *sdp) {
-	return ((WebRTCPeerNative *) user)->set_local_description(type, sdp);
+godot_error set_local_description_wp(void *user, const char *sdp, bool isOffer) {
+	return ((WebRTCPeerNative *) user)->set_local_description(sdp, isOffer);
 }
 
 godot_error add_ice_candidate_wp(void *user, const char *sdpMidName, int sdpMlineIndexName, const char *sdpName) {

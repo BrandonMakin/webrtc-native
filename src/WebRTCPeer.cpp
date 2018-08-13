@@ -19,15 +19,19 @@ godot_int WebRTCPeer::get_connection_state() const {
 }
 
 godot_error WebRTCPeer::create_offer() {
-	return GODOT_FAILED;
+	peer_connection->CreateOffer(
+    ptr_csdo, // CreateSessionDescriptionObserver* observer,
+    nullptr // webrtc::PeerConnectionInterface::RTCOfferAnswerOptions() // const MediaConstraintsInterface* constraints
+  );
+	return GODOT_OK;
 }
 
-godot_error WebRTCPeer::set_remote_description(const char *type, const char *sdp) {
-	return GODOT_FAILED;
+godot_error WebRTCPeer::set_remote_description(const char *sdp, bool isOffer) {
+	return set_description(sdp, isOffer, false); //false meaning !isLocal because it is remote
 }
 
-godot_error WebRTCPeer::set_local_description(const char *type, const char *sdp) {
-	return GODOT_FAILED;
+godot_error WebRTCPeer::set_local_description(const char *sdp, bool isOffer) {
+	return set_description(sdp, isOffer, true); // isLocal == true
 }
 
 godot_error WebRTCPeer::add_ice_candidate(const char *sdpMidName, int sdpMlineIndexName, const char *sdpName) {
@@ -59,7 +63,34 @@ godot_int WebRTCPeer::get_max_packet_size() const {
 	return 1024;
 }
 
-void WebRTCPeer::_register_methods() { }
+void WebRTCPeer::_register_methods() {
+	register_method("create_offer", &WebRTCPeer::create_offer);
+  register_method("set_local_description", &WebRTCPeer::set_local_description); // @FIXME add arguments: "sdp", "isOffer"
+  register_method("set_remote_description", &WebRTCPeer::set_remote_description); // @FIXME add arguments: "sdp", "isOffer"
+  register_method("poll", &WebRTCPeer::poll);
+	register_method("add_ice_candidate", &WebRTCPeer::add_ice_candidate); // @FIXME add arguments: "sdp_mid_name", "sdp_mline_index_name", "sdp_name"
+	// @TODO (NONESSENTIAL) rename add_ice_candidate arguments: give them shorter names
+	// register_method(
+  //   D_METHOD( "add_ice_candidate",
+  //             "sdp_mid_name",
+  //             "sdp_mline_index_name",
+  //             "sdp_name"
+  //   ), &WebRTCPeer::add_ice_candidate
+  // );
+
+  register_signal<WebRTCPeer>("notify", "message", GODOT_VARIANT_TYPE_STRING)
+
+	// @FIXME somehow register the following two signals with multiple arguments
+	// register_signal<WebRTCPeer>(MethodInfo("offer_created",
+	// 											PropertyInfo(Variant::STRING, "sdp"),
+	// 											PropertyInfo(Variant::BOOL, "is_offer")
+	// ));
+	// register_signal<WebRTCPeer>(MethodInfo("new_ice_candidate",
+	// 											PropertyInfo(Variant::STRING, "sdp_mid_name"),
+	// 											PropertyInfo(Variant::INT, "sdp_mline_index_name"),
+	// 											PropertyInfo(Variant::STRING, "sdp_name")
+	// ));
+}
 
 void WebRTCPeer::_init() {
 	printf("Binding PacketPeer interface");
@@ -150,4 +181,25 @@ void WebRTCPeer::queue_packet(uint8_t* buffer, int buffer_size)
   packet_sizes_queue.push(buffer_size);
   ++packet_queue_size;
   mutex_packet_queue->unlock();
+}
+
+godot_error WebRTCPeer::set_description(godot::String sdp, bool isOffer, bool isLocal)
+{
+	std::string string_sdp = sdp.utf8().get_data();
+	webrtc::SdpType type = (isOffer) ? webrtc::SdpType::kOffer : webrtc::SdpType::kAnswer;
+	std::unique_ptr<webrtc::SessionDescriptionInterface> desc =
+		webrtc::CreateSessionDescription(type, string_sdp);
+
+	if (isLocal) {
+		peer_connection->SetLocalDescription(
+			ptr_ssdo, // @TODO (NONESSENTIAL, OPTIONAL) replace this with DummySetSessionDescriptionObserver::Create()
+			desc.release()
+		);
+	} else {
+		peer_connection->SetRemoteDescription(
+			ptr_ssdo, // @TODO (NONESSENTIAL, OPTIONAL) replace this with DummySetSessionDescriptionObserver::Create()
+			desc.release()
+		);
+	}
+	return GODOT_OK;
 }
