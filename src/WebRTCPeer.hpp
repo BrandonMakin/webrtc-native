@@ -2,8 +2,12 @@
 #define WEBRTC_PEER_H
 
 #include <Godot.hpp>
-
 #include "net/WebRTCPeerNative.hpp"
+
+#include "media/base/mediaengine.h"       // needed for CreateModularPeerConnectionFactory
+#include "api/peerconnectioninterface.h"	// interface for all things needed from WebRTC
+#include <functional>        							// std::function
+#include <mutex>													// mutex @TODO replace std::mutex with Godot mutex
 
 namespace godot_webrtc {
 
@@ -34,6 +38,77 @@ public:
 
 	WebRTCPeer();
 	~WebRTCPeer();
+
+	/* helper functions */
+
+	void queue_signal(godot::String p_name, const godot::Variant &p_arg1 = godot::Variant(), const godot::Variant &p_arg2 = godot::Variant(), const godot::Variant &p_arg3 = godot::Variant(), const godot::Variant &p_arg4 = godot::Variant(), const godot::Variant &p_arg5 = godot::Variant());
+	// void queue_signal(godot::StringName p_name, Variant_ARG_LIST);
+	void queue_packet(uint8_t*, int);
+
+	/** DataChannelObserver callback functions **/
+	class GodotDCO : public webrtc::DataChannelObserver {
+	public:
+		WebRTCPeer* parent;
+
+		GodotDCO(WebRTCPeer* parent);
+		void OnMessage(const webrtc::DataBuffer& buffer) override;
+		void OnStateChange() override; // UNUSED
+		void OnBufferedAmountChange(uint64_t previous_amount) override; // UNUSED
+	};
+
+	/** PeerConnectionObserver callback functions **/
+  class GodotPCO : public webrtc::PeerConnectionObserver {
+  public:
+    WebRTCPeer* parent;
+
+    GodotPCO(WebRTCPeer* parent);
+    void OnSignalingChange(webrtc::PeerConnectionInterface::SignalingState new_state) override;
+    void OnAddStream(rtc::scoped_refptr<webrtc::MediaStreamInterface> stream) override;
+    void OnRemoveStream(rtc::scoped_refptr<webrtc::MediaStreamInterface> stream) override;
+    void OnDataChannel(rtc::scoped_refptr<webrtc::DataChannelInterface> data_channel) override;
+    void OnRenegotiationNeeded() override;
+    void OnIceConnectionChange(webrtc::PeerConnectionInterface::IceConnectionState new_state) override;
+    void OnIceGatheringChange(webrtc::PeerConnectionInterface::IceGatheringState new_state) override;
+    void OnIceCandidate(const webrtc::IceCandidateInterface* candidate) override;
+  };
+
+	/** CreateSessionDescriptionObserver callback functions **/
+	class GodotCSDO : public webrtc::CreateSessionDescriptionObserver {
+	public:
+		WebRTCPeer* parent;
+
+		GodotCSDO(WebRTCPeer* parent);
+		void OnSuccess(webrtc::SessionDescriptionInterface* desc) override;
+		void OnFailure(const std::string& error) override;
+	};
+
+	/** SetSessionDescriptionObserver callback functions **/
+	class GodotSSDO : public webrtc::SetSessionDescriptionObserver {
+	public:
+		WebRTCPeer* parent;
+
+		GodotSSDO(WebRTCPeer* parent);
+		void OnSuccess() override;
+		void OnFailure(const std::string& error) override;
+	};
+
+
+	GodotDCO dco;
+	GodotPCO pco;
+  rtc::scoped_refptr<GodotSSDO> ptr_ssdo;
+  rtc::scoped_refptr<GodotCSDO> ptr_csdo;
+
+	std::mutex *mutex_signal_queue;
+  std::mutex *mutex_packet_queue;
+	int packet_queue_size;
+	std::queue< uint8_t* > packet_queue;
+	std::queue< int > packet_sizes_queue;
+	std::queue< std::function<void()> > signal_queue;
+
+	rtc::Thread* signaling_thread;
+	rtc::scoped_refptr<webrtc::PeerConnectionFactoryInterface> pc_factory;
+	rtc::scoped_refptr<webrtc::PeerConnectionInterface> peer_connection;
+	rtc::scoped_refptr<webrtc::DataChannelInterface> data_channel;
 };
 
 }
