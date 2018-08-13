@@ -19,8 +19,8 @@ bool was_string_packet_wp(const void *);
 godot_int get_connection_state_wp(const void *);
 
 godot_error create_offer_wp(void *);
-godot_error set_remote_description_wp(void *, const char *, bool);
-godot_error set_local_description_wp(void *, const char *, bool);
+godot_error set_remote_description_wp(void *, const char *, const char *);
+godot_error set_local_description_wp(void *, const char *, const char *);
 godot_error add_ice_candidate_wp(void *, const char *, int, const char *);
 godot_error poll_wp(void *);
 

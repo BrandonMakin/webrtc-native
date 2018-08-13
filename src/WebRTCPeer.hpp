@@ -25,8 +25,8 @@ public:
 	godot_int get_connection_state() const;
 
 	godot_error create_offer();
-	godot_error set_remote_description(const char *sdp, bool isOffer);
-	godot_error set_local_description(const char *sdp, bool isOffer);
+	godot_error set_remote_description(const char *type, const char *sdp);
+	godot_error set_local_description(const char *type, const char *sdp);
 	godot_error add_ice_candidate(const char *sdpMidName, int sdpMlineIndexName, const char *sdpName);
 	godot_error poll();
 
@@ -44,7 +44,7 @@ public:
 	void queue_signal(godot::String p_name, const godot::Variant &p_arg1 = godot::Variant(), const godot::Variant &p_arg2 = godot::Variant(), const godot::Variant &p_arg3 = godot::Variant(), const godot::Variant &p_arg4 = godot::Variant(), const godot::Variant &p_arg5 = godot::Variant());
 	// void queue_signal(godot::StringName p_name, Variant_ARG_LIST);
 	void queue_packet(uint8_t*, int);
-	godot_error set_description(godot::String sdp, bool isOffer, bool isLocal);
+	godot_error set_description(const char* type, const char* sdp, bool isLocal);
 
 	/** DataChannelObserver callback functions **/
 	class GodotDCO : public webrtc::DataChannelObserver {

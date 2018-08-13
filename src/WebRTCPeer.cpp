@@ -26,12 +26,12 @@ godot_error WebRTCPeer::create_offer() {
 	return GODOT_OK;
 }
 
-godot_error WebRTCPeer::set_remote_description(const char *sdp, bool isOffer) {
-	return set_description(sdp, isOffer, false); //false meaning !isLocal because it is remote
+godot_error WebRTCPeer::set_remote_description(const char *type, const char *sdp) {
+	return set_description(type, sdp, false); //false meaning !isLocal because it is remote
 }
 
-godot_error WebRTCPeer::set_local_description(const char *sdp, bool isOffer) {
-	return set_description(sdp, isOffer, true); // isLocal == true
+godot_error WebRTCPeer::set_local_description(const char *type, const char *sdp) {
+	return set_description(type, sdp, true); // isLocal == true
 }
 
 godot_error WebRTCPeer::add_ice_candidate(const char *sdpMidName, int sdpMlineIndexName, const char *sdpName) {
@@ -78,7 +78,7 @@ void WebRTCPeer::_register_methods() {
   //   ), &WebRTCPeer::add_ice_candidate
   // );
 
-  register_signal<WebRTCPeer>("notify", "message", GODOT_VARIANT_TYPE_STRING)
+  // register_signal<WebRTCPeer>("notify", "message", GODOT_VARIANT_TYPE_STRING)
 
 	// @FIXME somehow register the following two signals with multiple arguments
 	// register_signal<WebRTCPeer>(MethodInfo("offer_created",
@@ -145,8 +145,8 @@ void WebRTCPeer::_init() {
 
 WebRTCPeer::WebRTCPeer() :  dco(this)
 													, pco(this)
-                        	// , ptr_csdo(new rtc::RefCountedObject<GD_CSDO>(this))
-                        	// , ptr_ssdo(new rtc::RefCountedObject<GD_SSDO>(this))
+                        	, ptr_csdo(new rtc::RefCountedObject<GodotCSDO>(this))
+                        	, ptr_ssdo(new rtc::RefCountedObject<GodotSSDO>(this))
 {
 }
 
@@ -183,12 +183,15 @@ void WebRTCPeer::queue_packet(uint8_t* buffer, int buffer_size)
   mutex_packet_queue->unlock();
 }
 
-godot_error WebRTCPeer::set_description(godot::String sdp, bool isOffer, bool isLocal)
+godot_error WebRTCPeer::set_description(const char* type, const char* sdp, bool isLocal)
 {
-	std::string string_sdp = sdp.utf8().get_data();
-	webrtc::SdpType type = (isOffer) ? webrtc::SdpType::kOffer : webrtc::SdpType::kAnswer;
+	// webrtc::SdpType type = (isOffer) ? webrtc::SdpType::kOffer : webrtc::SdpType::kAnswer;
+	godot::String string_sdp = sdp;
+	godot::String name_offer = "offer";
+
+	webrtc::SdpType sdptype = (sdp == "offer") ? webrtc::SdpType::kOffer : webrtc::SdpType::kAnswer;
 	std::unique_ptr<webrtc::SessionDescriptionInterface> desc =
-		webrtc::CreateSessionDescription(type, string_sdp);
+		webrtc::CreateSessionDescription(sdptype, sdp);
 
 	if (isLocal) {
 		peer_connection->SetLocalDescription(
